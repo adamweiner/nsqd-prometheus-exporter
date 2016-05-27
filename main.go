@@ -25,6 +25,7 @@ var (
 	messageCountGaugeVec *prometheus.GaugeVec
 	clientCountGaugeVec  *prometheus.GaugeVec
 	channelCountGaugeVec *prometheus.GaugeVec
+	buildInfoMetric      *prometheus.GaugeVec
 )
 
 func main() {
@@ -80,6 +81,9 @@ func main() {
 				// Initialize Prometheus metrics
 				var emptyMap map[string]string
 				labels := []string{"type", "topic", "paused", "channel"}
+				buildInfoMetric, _ = metrics.CreateGaugeVector("nsqd_prometheus_exporter_build_info", "", "",
+					"nsqd-prometheus-exporter build info", emptyMap, []string{"version"})
+				buildInfoMetric.WithLabelValues(app.Version).Set(1)
 				// # HELP nsq_depth Queue depth
 				// # TYPE nsq_depth gauge
 				depthGaugeVec, _ = metrics.CreateGaugeVector("nsq_depth", "", "", "Queue depth", emptyMap, labels)
