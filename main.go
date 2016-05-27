@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	nsqdUrl              string
 	scrapeInterval       int
+	nsqdUrl              string
+	allTopics            []string
 	logger               *irukaLogger.Logger
 	depthGaugeVec        *prometheus.GaugeVec
 	inFlightGaugeVec     *prometheus.GaugeVec
@@ -130,8 +131,25 @@ func fetchAndSetStats() {
 			os.Exit(1)
 		}
 
+		// Exit if any "dead" topics are detected
+		for _, topicName := range allTopics {
+			found := false
+			for _, topic := range stats.Topics {
+				if topicName == topic.Name {
+					found = true
+					break
+				}
+			}
+			if !found {
+				logger.Fatal("At least one old topic no longer included in nsqd stats - exiting")
+				os.Exit(0)
+			}
+		}
+
 		// Loop through topics and set metrics
+		allTopics = nil // Rebuild list of all topics
 		for _, topic := range stats.Topics {
+			allTopics = append(allTopics, topic.Name)
 			paused := "false"
 			if topic.Paused {
 				paused = "true"
