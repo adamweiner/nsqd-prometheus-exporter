@@ -40,10 +40,10 @@ func main() {
 			EnvVar: "NSQD_URL",
 		},
 		cli.StringFlag{
-			Name:   "prometheusPort, pp",
+			Name:   "listenPort, lp",
 			Value:  "30000",
 			Usage:  "Port on which prometheus will expose metrics",
-			EnvVar: "PROMETHEUS_PORT",
+			EnvVar: "LISTEN_PORT",
 		},
 		cli.StringFlag{
 			Name:   "scrapeInterval, s",
@@ -68,8 +68,8 @@ func main() {
 				// Set and validate configuration
 				nsqdUrl = c.GlobalString("nsqdUrl")
 				if nsqdUrl == "" {
-					logger.Fatal("nsqdUrl not provided, exiting")
-					os.Exit(1)
+					logger.Warning("Invalid nsqd URL set, continuing with default (http://localhost:4151)")
+					nsqdUrl = "http://localhost:4151"
 				}
 				scrapeInterval = c.GlobalInt("scrapeInterval")
 				if scrapeInterval < 1 {
@@ -110,7 +110,7 @@ func main() {
 
 				go fetchAndSetStats()
 
-				err = metrics.StartPrometheusMetricsServer(app.Name, logger, c.GlobalInt("prometheusPort"))
+				err = metrics.StartPrometheusMetricsServer(app.Name, logger, c.GlobalInt("listenPort"))
 				if err != nil {
 					os.Exit(1)
 				}
