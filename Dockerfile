@@ -1,5 +1,11 @@
 FROM docker.bottlenose.com/image/alpine-base
 
+# Github personal access token to clone private repos
+ARG pak
+
+# ENV overwritten at runtime by env vars provided in Ansible role
+ENV GITHUB_TOKEN=$pak
+
 ADD ./ /nsqd-prometheus-exporter
 
 WORKDIR /nsqd-prometheus-exporter
@@ -15,4 +21,4 @@ RUN echo http://nl.alpinelinux.org/alpine/edge/community >> /etc/apk/repositorie
 
 EXPOSE 30000
 
-CMD /nsqd-prometheus-exporter/nsqd-prometheus-exporter
+CMD /nsqd-prometheus-exporter/nsqd-prometheus-exporter run
