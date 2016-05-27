@@ -46,7 +46,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:   "scrapeInterval, s",
-			Value:  "5",
+			Value:  "30",
 			Usage:  "How often (in seconds) nsqd stats should be scraped",
 			EnvVar: "SCRAPE_INTERVAL",
 		},
@@ -72,8 +72,8 @@ func main() {
 				}
 				scrapeInterval = c.GlobalInt("scrapeInterval")
 				if scrapeInterval < 1 {
-					logger.Warning("Invalid scrape interval set, continuing with default (5s)")
-					scrapeInterval = 5
+					logger.Warning("Invalid scrape interval set, continuing with default (30s)")
+					scrapeInterval = 30
 				}
 
 				// Initialize Prometheus metrics
