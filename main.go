@@ -168,14 +168,14 @@ func fetchAndSetStats() {
 				if channel.Paused {
 					paused = "true"
 				}
-				depthGaugeVec.WithLabelValues("channel", channel.Name, paused, channel.Name).Set(float64(channel.Depth))
-				backendDepthGaugeVec.WithLabelValues("channel", channel.Name, paused, channel.Name).Set(float64(channel.BackendDepth))
-				inFlightGaugeVec.WithLabelValues("channel", channel.Name, paused, channel.Name).Set(float64(channel.InFlightCount))
-				timeoutGaugeVec.WithLabelValues("channel", channel.Name, paused, channel.Name).Set(float64(channel.TimeoutCount))
-				requeueGaugeVec.WithLabelValues("channel", channel.Name, paused, channel.Name).Set(float64(channel.RequeueCount))
-				deferredGaugeVec.WithLabelValues("channel", channel.Name, paused, channel.Name).Set(float64(channel.DeferredCount))
-				messageCountGaugeVec.WithLabelValues("channel", channel.Name, paused, channel.Name).Set(float64(channel.MessageCount))
-				clientCountGaugeVec.WithLabelValues("channel", channel.Name, paused, channel.Name).Set(float64(len(channel.Clients)))
+				depthGaugeVec.WithLabelValues("channel", topic.Name, paused, channel.Name).Set(float64(channel.Depth))
+				backendDepthGaugeVec.WithLabelValues("channel", topic.Name, paused, channel.Name).Set(float64(channel.BackendDepth))
+				inFlightGaugeVec.WithLabelValues("channel", topic.Name, paused, channel.Name).Set(float64(channel.InFlightCount))
+				timeoutGaugeVec.WithLabelValues("channel", topic.Name, paused, channel.Name).Set(float64(channel.TimeoutCount))
+				requeueGaugeVec.WithLabelValues("channel", topic.Name, paused, channel.Name).Set(float64(channel.RequeueCount))
+				deferredGaugeVec.WithLabelValues("channel", topic.Name, paused, channel.Name).Set(float64(channel.DeferredCount))
+				messageCountGaugeVec.WithLabelValues("channel", topic.Name, paused, channel.Name).Set(float64(channel.MessageCount))
+				clientCountGaugeVec.WithLabelValues("channel", topic.Name, paused, channel.Name).Set(float64(len(channel.Clients)))
 			}
 		}
 
