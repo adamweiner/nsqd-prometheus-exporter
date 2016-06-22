@@ -14,7 +14,8 @@ import (
 var (
 	scrapeInterval       int
 	nsqdUrl              string
-	allTopics            []string
+	knownTopics          []string
+	knownChannels        []string
 	logger               *irukaLogger.Logger
 	depthGaugeVec        *prometheus.GaugeVec
 	inFlightGaugeVec     *prometheus.GaugeVec
@@ -135,25 +136,33 @@ func fetchAndSetStats() {
 			os.Exit(1)
 		}
 
-		// Exit if any "dead" topics are detected
-		for _, topicName := range allTopics {
-			found := false
-			for _, topic := range stats.Topics {
-				if topicName == topic.Name {
-					found = true
-					break
-				}
-			}
-			if !found {
-				logger.Fatal("At least one old topic no longer included in nsqd stats - exiting")
-				os.Exit(0)
+		// Build list of detected topics and channels - the list of channels is built including the topic name that
+		// each belongs to, as it is possible to have multiple channels with the same name on different topics.
+		var detectedChannels []string
+		var detectedTopics []string
+		for _, topic := range stats.Topics {
+			detectedTopics = append(detectedTopics, topic.Name)
+			for _, channel := range topic.Channels {
+				detectedChannels = append(detectedChannels, topic.Name+channel.Name)
 			}
 		}
 
+		// Exit if a dead topic or channel is detected
+		if deadTopicOrChannelExists(knownTopics, detectedTopics) {
+			logger.Fatal("At least one old topic no longer included in nsqd stats - exiting")
+			os.Exit(0)
+		}
+		if deadTopicOrChannelExists(knownChannels, detectedChannels) {
+			logger.Fatal("At least one old channel no longer included in nsqd stats - exiting")
+			os.Exit(0)
+		}
+
+		// Update list of known topics and channels
+		knownTopics = detectedTopics
+		knownChannels = detectedChannels
+
 		// Loop through topics and set metrics
-		allTopics = nil // Rebuild list of all topics
 		for _, topic := range stats.Topics {
-			allTopics = append(allTopics, topic.Name)
 			paused := "false"
 			if topic.Paused {
 				paused = "true"
@@ -182,4 +191,24 @@ func fetchAndSetStats() {
 		// Scrape every scrapeInterval
 		time.Sleep(time.Duration(scrapeInterval) * time.Second)
 	}
+}
+
+// deadTopicOrChannelExists loops through a list of known topic or channel names and compares them to a list
+// of detected names. If a known name no longer exists, it is deemed dead.
+func deadTopicOrChannelExists(known []string, detected []string) bool {
+	// Loop through all known names and check against detected names
+	for _, knownName := range known {
+		found := false
+		for _, detectedName := range detected {
+			if knownName == detectedName {
+				found = true
+				break
+			}
+		}
+		// If a topic/channel isn't found, it's dead
+		if !found {
+			return true
+		}
+	}
+	return false
 }
