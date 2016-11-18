@@ -2,13 +2,13 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"os"
+	"strconv"
 	"time"
 
-	irukaLogger "github.com/bottlenose-inc/go-iruka/logger" // go-iruka bunyan-style logger package
-	"github.com/bottlenose-inc/go-iruka/metrics"            // go-iruka Prometheus metrics package
-	"github.com/codegangsta/cli"                            // CLI helper
-	"github.com/prometheus/client_golang/prometheus"        // Prometheus client library
+	"github.com/prometheus/client_golang/prometheus" // Prometheus client library
+	"github.com/urfave/cli"                          // CLI helper
 )
 
 var (
@@ -16,7 +16,6 @@ var (
 	nsqdUrl              string
 	knownTopics          []string
 	knownChannels        []string
-	logger               *irukaLogger.Logger
 	depthGaugeVec        *prometheus.GaugeVec
 	inFlightGaugeVec     *prometheus.GaugeVec
 	backendDepthGaugeVec *prometheus.GaugeVec
@@ -31,7 +30,7 @@ var (
 
 func main() {
 	app := cli.NewApp()
-	app.Version = "0.1.0"
+	app.Version = "0.2.0"
 	app.Name = "nsqd-prometheus-exporter"
 	app.Usage = "Scrapes nsqd stats and serves them up as Prometheus metrics"
 	app.Flags = []cli.Flag{
@@ -60,64 +59,59 @@ func main() {
 			Name:  "run",
 			Usage: "./nsqd-prometheus-exporter [options] run",
 			Action: func(c *cli.Context) {
-				// Initialize logger
-				var err error
-				logger, err = irukaLogger.NewLogger(app.Name + " v" + app.Version)
-				if err != nil {
-					log.Fatal("Unable to initialize go-iruka logger, exiting: " + err.Error())
-				}
-
 				// Set and validate configuration
 				nsqdUrl = c.GlobalString("nsqdUrl")
 				if nsqdUrl == "" {
-					logger.Warning("Invalid nsqd URL set, continuing with default (http://localhost:4151)")
+					log.Println("Invalid nsqd URL set, continuing with default (http://localhost:4151)")
 					nsqdUrl = "http://localhost:4151"
 				}
 				scrapeInterval = c.GlobalInt("scrapeInterval")
 				if scrapeInterval < 1 {
-					logger.Warning("Invalid scrape interval set, continuing with default (30s)")
+					log.Println("Invalid scrape interval set, continuing with default (30s)")
 					scrapeInterval = 30
 				}
 
 				// Initialize Prometheus metrics
 				var emptyMap map[string]string
-				labels := []string{"type", "topic", "paused", "channel"}
-				buildInfoMetric, _ = metrics.CreateGaugeVector("nsqd_prometheus_exporter_build_info", "", "",
+				commonLabels := []string{"type", "topic", "paused", "channel"}
+				buildInfoMetric = createGaugeVector("nsqd_prometheus_exporter_build_info", "", "",
 					"nsqd-prometheus-exporter build info", emptyMap, []string{"version"})
 				buildInfoMetric.WithLabelValues(app.Version).Set(1)
 				// # HELP nsq_depth Queue depth
 				// # TYPE nsq_depth gauge
-				depthGaugeVec, _ = metrics.CreateGaugeVector("nsq_depth", "", "", "Queue depth", emptyMap, labels)
+				depthGaugeVec = createGaugeVector("nsq_depth", "", "", "Queue depth", emptyMap, commonLabels)
 				// # HELP nsq_backend_depth Queue backend depth
 				// # TYPE nsq_backend_depth gauge
-				backendDepthGaugeVec, _ = metrics.CreateGaugeVector("nsq_backend_depth", "", "", "Queue backend depth", emptyMap, labels)
+				backendDepthGaugeVec = createGaugeVector("nsq_backend_depth", "", "", "Queue backend depth", emptyMap, commonLabels)
 				// # HELP nsq_in_flight_count In flight count
 				// # TYPE nsq_in_flight_count gauge
-				inFlightGaugeVec, _ = metrics.CreateGaugeVector("nsq_in_flight_count", "", "", "In flight count", emptyMap, labels)
+				inFlightGaugeVec = createGaugeVector("nsq_in_flight_count", "", "", "In flight count", emptyMap, commonLabels)
 				// # HELP nsq_timeout_count Timeout count
 				// # TYPE nsq_timeout_count gauge
-				timeoutGaugeVec, _ = metrics.CreateGaugeVector("nsq_timeout_count", "", "", "Timeout count", emptyMap, labels)
+				timeoutGaugeVec = createGaugeVector("nsq_timeout_count", "", "", "Timeout count", emptyMap, commonLabels)
 				// # HELP nsq_requeue_count Requeue Count
 				// # TYPE nsq_requeue_count gauge
-				requeueGaugeVec, _ = metrics.CreateGaugeVector("nsq_requeue_count", "", "", "Requeue Count", emptyMap, labels)
+				requeueGaugeVec = createGaugeVector("nsq_requeue_count", "", "", "Requeue Count", emptyMap, commonLabels)
 				// # HELP nsq_deferred_count Deferred count
 				// # TYPE nsq_deferred_count gauge
-				deferredGaugeVec, _ = metrics.CreateGaugeVector("nsq_deferred_count", "", "", "Deferred count", emptyMap, labels)
+				deferredGaugeVec = createGaugeVector("nsq_deferred_count", "", "", "Deferred count", emptyMap, commonLabels)
 				// # HELP nsq_message_count Queue message count
 				// # TYPE nsq_message_count gauge
-				messageCountGaugeVec, _ = metrics.CreateGaugeVector("nsq_message_count", "", "", "Queue message count", emptyMap, labels)
+				messageCountGaugeVec = createGaugeVector("nsq_message_count", "", "", "Queue message count", emptyMap, commonLabels)
 				// # HELP nsq_client_count Number of clients
 				// # TYPE nsq_client_count gauge
-				clientCountGaugeVec, _ = metrics.CreateGaugeVector("nsq_client_count", "", "", "Number of clients", emptyMap, labels)
+				clientCountGaugeVec = createGaugeVector("nsq_client_count", "", "", "Number of clients", emptyMap, commonLabels)
 				// # HELP nsq_channel_count Number of channels
 				// # TYPE nsq_channel_count gauge
-				channelCountGaugeVec, _ = metrics.CreateGaugeVector("nsq_channel_count", "", "", "Number of channels", emptyMap, []string{"type", "topic", "paused"})
+				channelCountGaugeVec = createGaugeVector("nsq_channel_count", "", "", "Number of channels", emptyMap, commonLabels[:3])
 
 				go fetchAndSetStats()
 
-				err = metrics.StartPrometheusMetricsServer(app.Name, logger, c.GlobalInt("listenPort"))
+				// Start HTTP server
+				http.Handle("/metrics", prometheus.Handler())
+				err := http.ListenAndServe(":"+strconv.Itoa(c.GlobalInt("listenPort")), nil)
 				if err != nil {
-					os.Exit(1)
+					log.Fatal("Error starting Prometheus metrics server: " + err.Error())
 				}
 			},
 		},
@@ -132,8 +126,7 @@ func fetchAndSetStats() {
 		// Fetch stats
 		stats, err := getNsqdStats(nsqdUrl)
 		if err != nil {
-			logger.Fatal("Error scraping stats from nsqd: " + err.Error())
-			os.Exit(1)
+			log.Fatal("Error scraping stats from nsqd: " + err.Error())
 		}
 
 		// Build list of detected topics and channels - the list of channels is built including the topic name that
@@ -149,12 +142,10 @@ func fetchAndSetStats() {
 
 		// Exit if a dead topic or channel is detected
 		if deadTopicOrChannelExists(knownTopics, detectedTopics) {
-			logger.Fatal("At least one old topic no longer included in nsqd stats - exiting")
-			os.Exit(0)
+			log.Fatal("At least one old topic no longer included in nsqd stats - exiting")
 		}
 		if deadTopicOrChannelExists(knownChannels, detectedChannels) {
-			logger.Fatal("At least one old channel no longer included in nsqd stats - exiting")
-			os.Exit(0)
+			log.Fatal("At least one old channel no longer included in nsqd stats - exiting")
 		}
 
 		// Update list of known topics and channels
@@ -211,4 +202,18 @@ func deadTopicOrChannelExists(known []string, detected []string) bool {
 		}
 	}
 	return false
+}
+
+// createGaugeVector creates a GaugeVec and registers it with Prometheus.
+func createGaugeVector(name string, namespace string, subsystem string, help string,
+	labels map[string]string, labelNames []string) *prometheus.GaugeVec {
+	gaugeVec := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name:        name,
+		Help:        help,
+		Namespace:   namespace,
+		Subsystem:   subsystem,
+		ConstLabels: prometheus.Labels(labels),
+	}, labelNames)
+	prometheus.MustRegister(gaugeVec)
+	return gaugeVec
 }

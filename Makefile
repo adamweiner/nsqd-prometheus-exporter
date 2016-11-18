@@ -1,18 +1,10 @@
-SHELL := /bin/bash
-PWD    = $(shell pwd)
+GOPATH = $(shell pwd)/go
+GO = GOPATH=$(GOPATH) go
 
-GOPATH=$(PWD)/go
-GO=GOPATH=$(GOPATH) go
-GODEBUG=GOPATH=$(GOPATH) PATH=$(GOPATH)/bin:$$PATH godebug
+PKG = .
+BIN = nsqd-prometheus-exporter
 
-
-PKG  = . # $(dir $(wildcard ./*)) # uncomment for implicit submodules
-BIN  = nsqd-prometheus-exporter
-
-FIND_STD_DEPS = $(GO) list std | sort | uniq
-FIND_PKG_DEPS = $(GO) list -f '{{join .Deps "\n"}}' $(PKG) | sort | uniq | grep -v "^_"
-DEPS          = $(shell comm -23 <($(FIND_PKG_DEPS)) <($(FIND_STD_DEPS)))
-VERSION       = $(shell ./$(BIN) --version | cut -d" " -f 3)
+VERSION = $(shell ./$(BIN) --version | cut -d" " -f 3)
 
 .PHONY: %
 
@@ -22,7 +14,7 @@ deploy-to-s3: build
 	aws s3 cp --sse AES256 $(BIN) s3://$(AWS_S3_ARTIFACTS_BUCKET)/$(CIRCLE_PROJECT_REPONAME)/$(BIN):$(VERSION)
 
 all: build
-build: fmt #deps
+build: fmt deps
 	$(GO) build -o $(BIN) $(PKG)
 lint: vet
 vet: deps
@@ -39,7 +31,7 @@ clean:
 clean-all:
 	$(GO) clean -i -r $(PKG)
 deps:
-	curl -s https://raw.githubusercontent.com/bottlenose-inc/gpm/v1.3.2/bin/gpm > gpm.sh
+	curl -s https://raw.githubusercontent.com/pote/gpm/master/bin/gpm > gpm.sh
 	chmod 755 gpm.sh
 	GOPATH=$(GOPATH) ./gpm.sh
 	rm gpm.sh
