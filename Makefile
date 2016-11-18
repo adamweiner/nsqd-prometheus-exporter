@@ -15,7 +15,7 @@ deploy-to-s3: build
 
 all: build
 build: fmt deps
-	$(GO) build -o $(BIN) $(PKG)
+	$(GO) build -a -o $(BIN) $(PKG)
 lint: vet
 vet: deps
 	$(GO) get code.google.com/p/go.tools/cmd/vet
@@ -37,7 +37,7 @@ deps:
 	rm gpm.sh
 test-deps: deps
 	$(GO) get -d -t $(PKG)
-	$(GO) test -i $(PKG)
+	$(GO) test -a -i $(PKG)
 install:
 	$(GO) install
 run: all
