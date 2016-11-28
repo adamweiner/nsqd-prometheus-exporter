@@ -14,7 +14,7 @@ dependencies:
 
 test:
   override:
-    - docker build -t docker.bottlenose.com/service/$CIRCLE_PROJECT_REPONAME:$CIRCLE_SHA1 --build-arg pak=$GITHUB_TOKEN .
+    - docker build -t docker.bottlenose.com/service/$CIRCLE_PROJECT_REPONAME:$CIRCLE_SHA1 .
 
 deployment:
   prod:

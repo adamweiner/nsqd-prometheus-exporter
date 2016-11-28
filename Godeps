@@ -1,7 +1,2 @@
-#Godeps allows gpm to manage go package versions
-#https://github.com/pote/gpm --> forked to github.com/bottlenose-inc/gpm
-
-# Packages used
-github.com/codegangsta/cli                     v1.2.0
-github.com/bottlenose-inc/go-iruka/...         v0.2.11
-github.com/prometheus/client_golang/prometheus 18acf9993a863f4c4b40612e19cdd243e7c86831 # last release out of date so use last commit available on 2/29/16
+github.com/urfave/cli                          v1.18.1
+github.com/prometheus/client_golang/prometheus f9f18f54ddbde9a27263903508dc6554a3bd8ccc # last release out of date; last commit available on 11/18/16
