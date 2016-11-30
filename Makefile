@@ -10,9 +10,6 @@ VERSION = $(shell ./$(BIN) --version | cut -d" " -f 3)
 
 default: fmt deps test build
 
-deploy-to-s3: build
-	aws s3 cp --sse AES256 $(BIN) s3://$(AWS_S3_ARTIFACTS_BUCKET)/$(CIRCLE_PROJECT_REPONAME)/$(BIN):$(VERSION)
-
 all: build
 build: fmt deps
 	$(GO) build -a -o $(BIN) $(PKG)
