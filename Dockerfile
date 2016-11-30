@@ -1,4 +1,4 @@
-FROM docker.bottlenose.com/image/alpine-base
+FROM gliderlabs/alpine:3.1
 
 ADD ./ /nsqd-prometheus-exporter
 
