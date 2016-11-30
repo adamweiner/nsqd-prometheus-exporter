@@ -1,4 +1,5 @@
-# nsqd-prometheus-exporter [![CircleCI](https://circleci.com/gh/bottlenose-inc/nsqd-prometheus-exporter.svg?style=shield&circle-token=fc390fea612462f6528acc4ec971e9e40c1fd58e)](https://circleci.com/gh/bottlenose-inc/nsqd-prometheus-exporter)
+# nsqd-prometheus-exporter 
+
 Scrapes nsqd stats and serves them up as Prometheus metrics.
 
 If a previously detected topic or channel no longer exists in a new scrape, the exporter will die, counting on Docker to bring it up again in a fresher state.
