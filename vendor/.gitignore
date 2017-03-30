@@ -1,0 +1,3 @@
+# Don't track vendored dependencies
+*
+!.gitignore

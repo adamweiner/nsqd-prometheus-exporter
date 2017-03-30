@@ -1,41 +1,42 @@
-GOPATH = $(shell pwd)/go
-GO = GOPATH=$(GOPATH) go
+BINARY_NAME := nsqd-prometheus-exporter
+LIST_NO_VENDOR := $(go list ./... | grep -v /vendor/)
+GOBIN := $(GOPATH)/bin
 
-PKG = .
-BIN = nsqd-prometheus-exporter
+default: check fmt deps test build
 
-VERSION = $(shell ./$(BIN) --version | cut -d" " -f 3)
+.PHONY: build
+build:
+	# Build project
+	go build -a -o $(BINARY_NAME) .
 
-.PHONY: %
+.PHONY: check
+check:
+	# Only continue if go is installed
+	go version || ( echo "Go not installed, exiting"; exit 1 )
 
-default: fmt deps test build
-
-all: build
-build: fmt deps
-	$(GO) build -a -o $(BIN) $(PKG)
-lint: vet
-vet: deps
-	$(GO) get code.google.com/p/go.tools/cmd/vet
-	$(GO) vet $(PKG)
-fmt:
-	$(GO) fmt $(PKG)
-test: test-deps
-	$(GO) test $(PKG)
-cover: test-deps
-	$(GO) test -cover $(PKG)
+.PHONY: clean
 clean:
-	$(GO) clean -i $(PKG)
-clean-all:
-	$(GO) clean -i -r $(PKG)
+	go clean -i
+	rm -rf ./vendor/*/
+	rm -f $(BINARY_NAME)
+
 deps:
-	curl -s https://raw.githubusercontent.com/pote/gpm/master/bin/gpm > gpm.sh
-	chmod 755 gpm.sh
-	GOPATH=$(GOPATH) ./gpm.sh
-	rm gpm.sh
-test-deps: deps
-	$(GO) get -d -t $(PKG)
-	$(GO) test -a -i $(PKG)
-install:
-	$(GO) install
-run: all
-	./$(BIN)
+	# Install or update govend
+	go get -u github.com/govend/govend
+	# Fetch vendored dependencies
+	$(GOBIN)/govend -v
+
+.PHONY: fmt
+fmt:
+	# Format all Go source files (excluding vendored packages)
+	go fmt $(LIST_NO_VENDOR)
+
+generate-deps:
+	# Generate vendor.yml
+	govend -v -l
+	git checkout vendor/.gitignore
+
+.PHONY: test
+test:
+	# Run all tests (excluding vendored packages)
+	go test -a -v -cover $(LIST_NO_VENDOR)
