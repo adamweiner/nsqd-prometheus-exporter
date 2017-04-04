@@ -1,17 +1,13 @@
-FROM gliderlabs/alpine:3.1
+FROM alpine:3.5
 
-ADD ./ /nsqd-prometheus-exporter
+ADD ./ /go/src/github.com/adamweiner/nsqd-prometheus-exporter
 
-WORKDIR /nsqd-prometheus-exporter
-
-# Using go >= 1.6
-RUN echo http://nl.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories && \
-    apk update && \
-    apk add -U build-base file go git bash curl libstdc++ && \
-    cd /nsqd-prometheus-exporter && \
-    make && \
-    apk del build-base go file git
+RUN apk update && \
+    apk add -U build-base go git curl libstdc++ && \
+    cd /go/src/github.com/adamweiner/nsqd-prometheus-exporter && \
+    GOPATH=/go make && \
+    apk del build-base go git
 
 EXPOSE 30000
 
-CMD /nsqd-prometheus-exporter/nsqd-prometheus-exporter run
+CMD /go/src/github.com/adamweiner/nsqd-prometheus-exporter
