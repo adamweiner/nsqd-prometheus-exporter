@@ -89,8 +89,9 @@ type client struct {
 	TLS           bool   `json:"tls"`
 }
 
-func getNsqdStats(nsqdUrl string) (*stats, error) {
-	resp, err := http.Get(nsqdUrl + "/stats?format=json")
+// getNsqdStats calls nsqd's HTTP API and returns the response.
+func getNsqdStats(nsqdURL string) (*stats, error) {
+	resp, err := http.Get(nsqdURL + "/stats?format=json")
 	if err != nil {
 		return nil, err
 	}
