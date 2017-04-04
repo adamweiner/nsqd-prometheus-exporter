@@ -54,6 +54,6 @@ release:
 		mkdir -p release/$(BINARY_NAME)-$(VERSION).$$platform-amd64.$(GO_VERSION); \
 		GOOS=$$platform GOARCH=amd64 go build $(BUILD_FLAGS) -a -o release/$(BINARY_NAME)-$(VERSION).$$platform-amd64.$(GO_VERSION)/$(BINARY_NAME) .; \
 		cd release; tar -cvzf $(BINARY_NAME)-$(VERSION).$$platform-amd64.$(GO_VERSION).tar.gz $(BINARY_NAME)-$(VERSION).$$platform-amd64.$(GO_VERSION)/$(BINARY_NAME); \
-		shasum -a256 $(BINARY_NAME)-$(VERSION).$$platform-amd64.$(GO_VERSION).tar.gz | awk -F ' ' '{print $$1}' >> $(BINARY_NAME)-$(VERSION).$$platform-amd64.$(GO_VERSION).sha256; \
+		shasum -a256 $(BINARY_NAME)-$(VERSION).$$platform-amd64.$(GO_VERSION).tar.gz | awk -F ' ' '{print $$1}' >> $(BINARY_NAME)-$(VERSION).$$platform-amd64.$(GO_VERSION).tar.gz.sha256; \
 		rm -rf $(BINARY_NAME)-$(VERSION).$$platform-amd64.$(GO_VERSION); cd ..; \
 	done
