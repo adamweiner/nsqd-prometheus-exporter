@@ -12,6 +12,9 @@ import (
 )
 
 var (
+	// Version is defined at build time - see VERSION file
+	Version string
+
 	scrapeInterval       int
 	nsqdURL              string
 	knownTopics          []string
@@ -30,7 +33,7 @@ var (
 
 func main() {
 	app := cli.NewApp()
-	app.Version = "0.3.0"
+	app.Version = Version
 	app.Name = "nsqd-prometheus-exporter"
 	app.Usage = "Scrapes nsqd stats and serves them up as Prometheus metrics"
 	app.Flags = []cli.Flag{
