@@ -2,9 +2,9 @@
 
 Scrapes nsqd stats and serves them up as Prometheus metrics.
 
-Important note: If a previously detected topic or channel no longer exists in a new scrape, the exporter will die. This will restrict any topics/channels that have been deleted from being reported in the Prometheus metrics that are exported. You should use Docker (or supervisord, etc) to restart the binary automatically when it exits.
+If a previously detected topic or channel no longer exists in a new scrape, the exporter will rebuild all metrics to remove any label values associated with the old topic or channel.
 
-TODO: remove deleted topics/channels without exiting, add tests
+TODO: add tests
 
 ## Usage
 ```
@@ -15,7 +15,7 @@ USAGE:
    nsqd-prometheus-exporter [global options] command [command options] [arguments...]
 
 VERSION:
-   0.3.0
+   0.4.0
 
 COMMANDS:
      help, h  Shows a list of commands or help for one command

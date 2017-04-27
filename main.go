@@ -15,20 +15,25 @@ var (
 	// Version is defined at build time - see VERSION file
 	Version string
 
-	scrapeInterval       int
-	nsqdURL              string
-	knownTopics          []string
-	knownChannels        []string
-	depthGaugeVec        *prometheus.GaugeVec
-	inFlightGaugeVec     *prometheus.GaugeVec
-	backendDepthGaugeVec *prometheus.GaugeVec
-	timeoutGaugeVec      *prometheus.GaugeVec
-	requeueGaugeVec      *prometheus.GaugeVec
-	deferredGaugeVec     *prometheus.GaugeVec
-	messageCountGaugeVec *prometheus.GaugeVec
-	clientCountGaugeVec  *prometheus.GaugeVec
-	channelCountGaugeVec *prometheus.GaugeVec
-	buildInfoMetric      *prometheus.GaugeVec
+	scrapeInterval  int
+	nsqdURL         string
+	knownTopics     []string
+	knownChannels   []string
+	buildInfoMetric *prometheus.GaugeVec
+	nsqMetrics      = make(map[string]*prometheus.GaugeVec)
+)
+
+const (
+	PrometheusNamespace = "nsq"
+	DepthMetric         = "depth"
+	BackendDepthMetric  = "backend_depth"
+	InFlightMetric      = "in_flight_count"
+	TimeoutCountMetric  = "timeout_count_total"
+	RequeueCountMetric  = "requeue_count_total"
+	DeferredCountMetric = "deferred_count_total"
+	MessageCountMetric  = "message_count_total"
+	ClientCountMetric   = "client_count"
+	ChannelCountMetric  = "channel_count"
 )
 
 func main() {
@@ -77,40 +82,40 @@ func main() {
 		buildInfoMetric.WithLabelValues(app.Version).Set(1)
 		// # HELP nsq_depth Queue depth
 		// # TYPE nsq_depth gauge
-		depthGaugeVec = createGaugeVector("nsq_depth", "", "", "Queue depth", emptyMap,
-			commonLabels)
+		nsqMetrics[DepthMetric] = createGaugeVector(DepthMetric, PrometheusNamespace,
+			"", "Queue depth", emptyMap, commonLabels)
 		// # HELP nsq_backend_depth Queue backend depth
 		// # TYPE nsq_backend_depth gauge
-		backendDepthGaugeVec = createGaugeVector("nsq_backend_depth", "", "", "Queue backend depth",
-			emptyMap, commonLabels)
+		nsqMetrics[BackendDepthMetric] = createGaugeVector(BackendDepthMetric, PrometheusNamespace,
+			"", "Queue backend depth", emptyMap, commonLabels)
 		// # HELP nsq_in_flight_count In flight count
 		// # TYPE nsq_in_flight_count gauge
-		inFlightGaugeVec = createGaugeVector("nsq_in_flight_count", "", "", "In flight count",
-			emptyMap, commonLabels)
-		// # HELP nsq_timeout_count Timeout count
-		// # TYPE nsq_timeout_count gauge
-		timeoutGaugeVec = createGaugeVector("nsq_timeout_count", "", "", "Timeout count",
-			emptyMap, commonLabels)
-		// # HELP nsq_requeue_count Requeue Count
-		// # TYPE nsq_requeue_count gauge
-		requeueGaugeVec = createGaugeVector("nsq_requeue_count", "", "", "Requeue Count",
-			emptyMap, commonLabels)
-		// # HELP nsq_deferred_count Deferred count
-		// # TYPE nsq_deferred_count gauge
-		deferredGaugeVec = createGaugeVector("nsq_deferred_count", "", "", "Deferred count",
-			emptyMap, commonLabels)
-		// # HELP nsq_message_count Queue message count
-		// # TYPE nsq_message_count gauge
-		messageCountGaugeVec = createGaugeVector("nsq_message_count", "", "", "Queue message count",
-			emptyMap, commonLabels)
+		nsqMetrics[InFlightMetric] = createGaugeVector(InFlightMetric, PrometheusNamespace,
+			"", "In flight count", emptyMap, commonLabels)
+		// # HELP nsq_timeout_count_total Timeout count
+		// # TYPE nsq_timeout_count_total gauge
+		nsqMetrics[TimeoutCountMetric] = createGaugeVector(TimeoutCountMetric, PrometheusNamespace,
+			"", "Timeout count", emptyMap, commonLabels)
+		// # HELP nsq_requeue_count_total Requeue count
+		// # TYPE nsq_requeue_count_total gauge
+		nsqMetrics[RequeueCountMetric] = createGaugeVector(RequeueCountMetric, PrometheusNamespace,
+			"", "Requeue count", emptyMap, commonLabels)
+		// # HELP nsq_deferred_count_total Deferred count
+		// # TYPE nsq_deferred_count_total gauge
+		nsqMetrics[DeferredCountMetric] = createGaugeVector(DeferredCountMetric, PrometheusNamespace,
+			"", "Deferred count", emptyMap, commonLabels)
+		// # HELP nsq_message_count_total Total message count
+		// # TYPE nsq_message_count_total gauge
+		nsqMetrics[MessageCountMetric] = createGaugeVector(MessageCountMetric, PrometheusNamespace,
+			"", "Total message count", emptyMap, commonLabels)
 		// # HELP nsq_client_count Number of clients
 		// # TYPE nsq_client_count gauge
-		clientCountGaugeVec = createGaugeVector("nsq_client_count", "", "", "Number of clients",
-			emptyMap, commonLabels)
+		nsqMetrics[ClientCountMetric] = createGaugeVector(ClientCountMetric, PrometheusNamespace,
+			"", "Number of clients", emptyMap, commonLabels)
 		// # HELP nsq_channel_count Number of channels
 		// # TYPE nsq_channel_count gauge
-		channelCountGaugeVec = createGaugeVector("nsq_channel_count", "", "", "Number of channels",
-			emptyMap, commonLabels[:3])
+		nsqMetrics[ChannelCountMetric] = createGaugeVector(ChannelCountMetric, PrometheusNamespace,
+			"", "Number of channels", emptyMap, commonLabels[:3])
 
 		go fetchAndSetStats()
 
@@ -150,10 +155,16 @@ func fetchAndSetStats() {
 
 		// Exit if a dead topic or channel is detected
 		if deadTopicOrChannelExists(knownTopics, detectedTopics) {
-			logger.Fatal("At least one old topic no longer included in nsqd stats - exiting")
+			logger.Warning("At least one old topic no longer included in nsqd stats - rebuilding metrics")
+			for _, metric := range nsqMetrics {
+				metric.Reset()
+			}
 		}
 		if deadTopicOrChannelExists(knownChannels, detectedChannels) {
-			logger.Fatal("At least one old channel no longer included in nsqd stats - exiting")
+			logger.Warning("At least one old channel no longer included in nsqd stats - rebuilding metrics")
+			for _, metric := range nsqMetrics {
+				metric.Reset()
+			}
 		}
 
 		// Update list of known topics and channels
@@ -166,11 +177,11 @@ func fetchAndSetStats() {
 			if topic.Paused {
 				paused = "true"
 			}
-			depthGaugeVec.WithLabelValues("topic", topic.Name, paused, "").
+			nsqMetrics[DepthMetric].WithLabelValues("topic", topic.Name, paused, "").
 				Set(float64(topic.Depth))
-			backendDepthGaugeVec.WithLabelValues("topic", topic.Name, paused, "").
+			nsqMetrics[BackendDepthMetric].WithLabelValues("topic", topic.Name, paused, "").
 				Set(float64(topic.BackendDepth))
-			channelCountGaugeVec.WithLabelValues("topic", topic.Name, paused).
+			nsqMetrics[ChannelCountMetric].WithLabelValues("topic", topic.Name, paused).
 				Set(float64(len(topic.Channels)))
 
 			// Loop through a topic's channels and set metrics
@@ -179,21 +190,21 @@ func fetchAndSetStats() {
 				if channel.Paused {
 					paused = "true"
 				}
-				depthGaugeVec.WithLabelValues("channel", topic.Name, paused, channel.Name).
+				nsqMetrics[DepthMetric].WithLabelValues("channel", topic.Name, paused, channel.Name).
 					Set(float64(channel.Depth))
-				backendDepthGaugeVec.WithLabelValues("channel", topic.Name, paused, channel.Name).
+				nsqMetrics[BackendDepthMetric].WithLabelValues("channel", topic.Name, paused, channel.Name).
 					Set(float64(channel.BackendDepth))
-				inFlightGaugeVec.WithLabelValues("channel", topic.Name, paused, channel.Name).
+				nsqMetrics[InFlightMetric].WithLabelValues("channel", topic.Name, paused, channel.Name).
 					Set(float64(channel.InFlightCount))
-				timeoutGaugeVec.WithLabelValues("channel", topic.Name, paused, channel.Name).
+				nsqMetrics[TimeoutCountMetric].WithLabelValues("channel", topic.Name, paused, channel.Name).
 					Set(float64(channel.TimeoutCount))
-				requeueGaugeVec.WithLabelValues("channel", topic.Name, paused, channel.Name).
+				nsqMetrics[RequeueCountMetric].WithLabelValues("channel", topic.Name, paused, channel.Name).
 					Set(float64(channel.RequeueCount))
-				deferredGaugeVec.WithLabelValues("channel", topic.Name, paused, channel.Name).
+				nsqMetrics[DeferredCountMetric].WithLabelValues("channel", topic.Name, paused, channel.Name).
 					Set(float64(channel.DeferredCount))
-				messageCountGaugeVec.WithLabelValues("channel", topic.Name, paused, channel.Name).
+				nsqMetrics[MessageCountMetric].WithLabelValues("channel", topic.Name, paused, channel.Name).
 					Set(float64(channel.MessageCount))
-				clientCountGaugeVec.WithLabelValues("channel", topic.Name, paused, channel.Name).
+				nsqMetrics[ClientCountMetric].WithLabelValues("channel", topic.Name, paused, channel.Name).
 					Set(float64(len(channel.Clients)))
 			}
 		}

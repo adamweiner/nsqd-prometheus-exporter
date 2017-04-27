@@ -4,7 +4,7 @@ GO_BIN := $(GOPATH)/bin
 GO_VERSION := $(shell go version | awk -F ' ' '{print $$3}')
 VERSION := $(shell cat VERSION)
 BUILD_FLAGS := -ldflags "-X main.Version=$(VERSION)"
-BUILD_PLATFORMS := darwin linux windows
+BUILD_PLATFORMS := darwin linux windows freebsd
 
 default: check fmt deps test build
 
