@@ -1,10 +1,10 @@
-# nsqd-prometheus-exporter
+# nsqd-prometheus-exporter [![Build Status](https://travis-ci.org/adamweiner/nsqd-prometheus-exporter.svg?branch=master)](https://travis-ci.org/adamweiner/nsqd-prometheus-exporter)
 
 Scrapes nsqd stats and serves them up as Prometheus metrics.
 
 If a previously detected topic or channel no longer exists in a new scrape, the exporter will rebuild all metrics to remove any label values associated with the old topic or channel.
 
-TODO: add tests
+TODO: support NSQ 1.x, better tests
 
 ## Usage
 ```
