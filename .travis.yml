@@ -13,7 +13,7 @@ before_script:
   - sudo cp -R nsq-0.3.8.linux-amd64.go1.6.2/bin/. /usr/local/bin
   - nsqlookupd &
   - nsqd -lookupd-tcp-address localhost:4160 &
-  - echo 'test' > to_nsq -nsqd-tcp-address localhost:4150 -topic test
+  - echo 'test' | to_nsq -nsqd-tcp-address localhost:4150 -topic test
   - cd $HOME/gopath/src/github.com/adamweiner/nsqd-prometheus-exporter
 script:
   - make
