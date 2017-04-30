@@ -7,14 +7,15 @@ go:
   - 1.8.x
   - master
 before_script:
-  - curl -L https://github.com/nsqio/nsq/releases/download/v0.3.8/nsq-0.3.8.linux-amd64.go1.6.2.tar.gz -o /tmp/nsq-0.3.8.linux-amd64.go1.6.2.tar.gz
-  - cd /tmp; tar -zxvf nsq-0.3.8.linux-amd64.go1.6.2.tar.gz
-  - sudo cp -R /tmp/nsq-0.3.8.linux-amd64.go1.6.2/bin/. /usr/local/bin
+  - cd tmp
+  - curl -L https://github.com/nsqio/nsq/releases/download/v0.3.8/nsq-0.3.8.linux-amd64.go1.6.2.tar.gz -o nsq-0.3.8.linux-amd64.go1.6.2.tar.gz
+  - tar -zxvf nsq-0.3.8.linux-amd64.go1.6.2.tar.gz
+  - sudo cp -R nsq-0.3.8.linux-amd64.go1.6.2/bin/. /usr/local/bin
   - nsqlookupd &
   - nsqd -lookupd-tcp-address localhost:4160 &
   - echo 'test' > to_nsq -nsqd-tcp-address localhost:4150 -topic test
+  - cd $HOME/gopath/src/github.com/adamweiner/nsqd-prometheus-exporter
 script:
-  - pwd
   - make
   - ./nsqd-prometheus-exporter &
   - sleep 1; curl localhost:30000/metrics
