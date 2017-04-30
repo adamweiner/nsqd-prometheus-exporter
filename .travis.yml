@@ -18,4 +18,6 @@ before_script:
 script:
   - make
   - ./nsqd-prometheus-exporter &
-  - sleep 1; curl localhost:30000/metrics
+  - sleep 1; curl -s localhost:30000/metrics > metrics.out
+  - cat metrics.out
+  - cat metrics.out | grep 'nsq_depth{channel="",paused="false",topic="test",type="topic"} 1'
