@@ -1,0 +1,8 @@
+language: go
+install: true
+go:
+  - 1.8.x
+  - master
+script:
+  - go env
+  - make
