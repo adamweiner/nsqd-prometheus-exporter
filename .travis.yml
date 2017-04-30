@@ -15,4 +15,4 @@ script:
   - go env
   - make
   - ./nsqd-prometheus-exporter &
-  - sleep 1; curl localhost:3000
+  - sleep 1; curl localhost:30000/metrics
