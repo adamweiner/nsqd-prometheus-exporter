@@ -14,7 +14,7 @@ before_script:
   - nsqd -lookupd-tcp-address localhost:4160 &
   - echo 'test' > to_nsq -nsqd-tcp-address localhost:4150 -topic test
 script:
-  - go env
+  - pwd
   - make
   - ./nsqd-prometheus-exporter &
   - sleep 1; curl localhost:30000/metrics
