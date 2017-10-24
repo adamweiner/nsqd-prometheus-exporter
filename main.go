@@ -82,8 +82,8 @@ func main() {
 		buildInfoMetric = createGaugeVector("nsqd_prometheus_exporter_build_info", "", "",
 			"nsqd-prometheus-exporter build info", emptyMap, []string{"version"})
 		buildInfoMetric.WithLabelValues(app.Version).Set(1)
-		// # HELP nsqd_health Health
-		// # TYPE nsqd_health gauge
+		// # HELP nsqd_info nsqd info
+		// # TYPE nsqd_info gauge
 		nsqMetrics[InfoMetric] = createGaugeVector(InfoMetric, PrometheusNamespace,
 			"", "nsqd info", emptyMap, []string{"health", "start_time", "version"})
 		// # HELP nsqd_depth Queue depth
