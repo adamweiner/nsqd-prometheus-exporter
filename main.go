@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"strconv"
@@ -24,7 +25,7 @@ var (
 )
 
 const (
-	PrometheusNamespace = "nsq"
+	PrometheusNamespace = "nsqd"
 	DepthMetric         = "depth"
 	BackendDepthMetric  = "backend_depth"
 	InFlightMetric      = "in_flight_count"
@@ -34,6 +35,7 @@ const (
 	MessageCountMetric  = "message_count_total"
 	ClientCountMetric   = "client_count"
 	ChannelCountMetric  = "channel_count"
+	InfoMetric          = "info"
 )
 
 func main() {
@@ -80,40 +82,44 @@ func main() {
 		buildInfoMetric = createGaugeVector("nsqd_prometheus_exporter_build_info", "", "",
 			"nsqd-prometheus-exporter build info", emptyMap, []string{"version"})
 		buildInfoMetric.WithLabelValues(app.Version).Set(1)
-		// # HELP nsq_depth Queue depth
-		// # TYPE nsq_depth gauge
+		// # HELP nsqd_health Health
+		// # TYPE nsqd_health gauge
+		nsqMetrics[InfoMetric] = createGaugeVector(InfoMetric, PrometheusNamespace,
+			"", "nsqd info", emptyMap, []string{"health", "start_time", "version"})
+		// # HELP nsqd_depth Queue depth
+		// # TYPE nsqd_depth gauge
 		nsqMetrics[DepthMetric] = createGaugeVector(DepthMetric, PrometheusNamespace,
 			"", "Queue depth", emptyMap, commonLabels)
-		// # HELP nsq_backend_depth Queue backend depth
-		// # TYPE nsq_backend_depth gauge
+		// # HELP nsqd_backend_depth Queue backend depth
+		// # TYPE nsqd_backend_depth gauge
 		nsqMetrics[BackendDepthMetric] = createGaugeVector(BackendDepthMetric, PrometheusNamespace,
 			"", "Queue backend depth", emptyMap, commonLabels)
-		// # HELP nsq_in_flight_count In flight count
-		// # TYPE nsq_in_flight_count gauge
+		// # HELP nsqd_in_flight_count In flight count
+		// # TYPE nsqd_in_flight_count gauge
 		nsqMetrics[InFlightMetric] = createGaugeVector(InFlightMetric, PrometheusNamespace,
 			"", "In flight count", emptyMap, commonLabels)
-		// # HELP nsq_timeout_count_total Timeout count
-		// # TYPE nsq_timeout_count_total gauge
+		// # HELP nsqd_timeout_count_total Timeout count
+		// # TYPE nsqd_timeout_count_total gauge
 		nsqMetrics[TimeoutCountMetric] = createGaugeVector(TimeoutCountMetric, PrometheusNamespace,
 			"", "Timeout count", emptyMap, commonLabels)
-		// # HELP nsq_requeue_count_total Requeue count
-		// # TYPE nsq_requeue_count_total gauge
+		// # HELP nsqd_requeue_count_total Requeue count
+		// # TYPE nsqd_requeue_count_total gauge
 		nsqMetrics[RequeueCountMetric] = createGaugeVector(RequeueCountMetric, PrometheusNamespace,
 			"", "Requeue count", emptyMap, commonLabels)
-		// # HELP nsq_deferred_count_total Deferred count
-		// # TYPE nsq_deferred_count_total gauge
+		// # HELP nsqd_deferred_count_total Deferred count
+		// # TYPE nsqd_deferred_count_total gauge
 		nsqMetrics[DeferredCountMetric] = createGaugeVector(DeferredCountMetric, PrometheusNamespace,
 			"", "Deferred count", emptyMap, commonLabels)
-		// # HELP nsq_message_count_total Total message count
-		// # TYPE nsq_message_count_total gauge
+		// # HELP nsqd_message_count_total Total message count
+		// # TYPE nsqd_message_count_total gauge
 		nsqMetrics[MessageCountMetric] = createGaugeVector(MessageCountMetric, PrometheusNamespace,
 			"", "Total message count", emptyMap, commonLabels)
-		// # HELP nsq_client_count Number of clients
-		// # TYPE nsq_client_count gauge
+		// # HELP nsqd_client_count Number of clients
+		// # TYPE nsqd_client_count gauge
 		nsqMetrics[ClientCountMetric] = createGaugeVector(ClientCountMetric, PrometheusNamespace,
 			"", "Number of clients", emptyMap, commonLabels)
-		// # HELP nsq_channel_count Number of channels
-		// # TYPE nsq_channel_count gauge
+		// # HELP nsqd_channel_count Number of channels
+		// # TYPE nsqd_channel_count gauge
 		nsqMetrics[ChannelCountMetric] = createGaugeVector(ChannelCountMetric, PrometheusNamespace,
 			"", "Number of channels", emptyMap, commonLabels[:3])
 
@@ -170,6 +176,10 @@ func fetchAndSetStats() {
 		// Update list of known topics and channels
 		knownTopics = detectedTopics
 		knownChannels = detectedChannels
+
+		// Update info metric with health, start time, and nsqd version
+		nsqMetrics[InfoMetric].
+			WithLabelValues(stats.Health, fmt.Sprintf("%d", stats.StartTime), stats.Version).Set(1)
 
 		// Loop through topics and set metrics
 		for _, topic := range stats.Topics {
