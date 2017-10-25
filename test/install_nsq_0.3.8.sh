@@ -12,4 +12,5 @@ nsqlookupd &
 nsqd -lookupd-tcp-address localhost:4160 &
 
 # Emit test message
+sleep 1
 echo 'test' | to_nsq -nsqd-tcp-address localhost:4150 -topic test
