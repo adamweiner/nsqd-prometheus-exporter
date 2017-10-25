@@ -4,7 +4,7 @@ Scrapes nsqd stats and serves them up as Prometheus metrics.
 
 If a previously detected topic or channel no longer exists in a new scrape, the exporter will rebuild all metrics to remove any label values associated with the old topic or channel.
 
-TODO: support NSQ 1.x, better tests
+TODO: better tests
 
 ## Usage
 ```

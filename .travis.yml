@@ -4,20 +4,22 @@ install: true
 notifications:
   email: false
 go:
-  - 1.8.x
+  - 1.9.x
   - master
 before_script:
   - cd /tmp
-  - curl -L https://github.com/nsqio/nsq/releases/download/v0.3.8/nsq-0.3.8.linux-amd64.go1.6.2.tar.gz -o nsq-0.3.8.linux-amd64.go1.6.2.tar.gz
-  - tar -zxvf nsq-0.3.8.linux-amd64.go1.6.2.tar.gz
-  - sudo cp -R nsq-0.3.8.linux-amd64.go1.6.2/bin/. /usr/local/bin
+  - curl -L https://s3.amazonaws.com/bitly-downloads/nsq/nsq-1.0.0-compat.linux-amd64.go1.8.tar.gz -o nsq-1.0.0-compat.linux-amd64.go1.8.tar.gz
+  - tar -zxvf nsq-1.0.0-compat.linux-amd64.go1.8.tar.gz
+  - sudo cp -R nsq-1.0.0-compat.linux-amd64.go1.8/bin/. /usr/local/bin
   - nsqlookupd &
   - nsqd -lookupd-tcp-address localhost:4160 &
-  - echo 'test' | to_nsq -nsqd-tcp-address localhost:4150 -topic test
+  - sleep 1
+  - echo 'test' | to_nsq -nsqd-tcp-address localhost:4150 -topic test -rate 2
   - cd $HOME/gopath/src/github.com/adamweiner/nsqd-prometheus-exporter
 script:
   - make
   - ./nsqd-prometheus-exporter &
-  - sleep 1; curl -s localhost:30000/metrics > metrics.out
+  - sleep 1
+  - curl -s localhost:30000/metrics > metrics.out
   - cat metrics.out
-  - cat metrics.out | grep 'nsq_depth{channel="",paused="false",topic="test",type="topic"} 1'
+  - cat metrics.out | grep 'nsqd_depth{channel="",paused="false",topic="test",type="topic"} 1'
