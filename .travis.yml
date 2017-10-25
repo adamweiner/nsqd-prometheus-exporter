@@ -11,6 +11,7 @@ script:
   - make
   # test with NSQ 0.3.8
   - ./test/install_nsq_0.3.8.sh
+  - sleep 1
   - ./nsqd-prometheus-exporter &
   - sleep 1
   - ./test/test_depth_metric.sh
@@ -19,6 +20,7 @@ script:
   - sudo rm -f /usr/local/bin/*nsq*
   # test with NSQ 1.0.0
   - ./test/install_nsq_1.0.0.sh
+  - sleep 1
   - ./nsqd-prometheus-exporter &
   - sleep 1
   - ./test/test_depth_metric.sh
