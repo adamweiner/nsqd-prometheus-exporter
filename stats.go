@@ -32,8 +32,15 @@ package main
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 )
+
+type statsResponse struct {
+	StatusCode int    `json:"status_code"`
+	StatusText string `json:"status_text"`
+	Data       stats  `json:"data"`
+}
 
 type stats struct {
 	Version   string   `json:"version"`
@@ -90,9 +97,24 @@ func getNsqdStats(nsqdURL string) (*stats, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
 
+	// nsq <= 0.3.8 uses statsResponse
+	// if a status code != 0 exists, assume the unmarshal is successful
+	var sr statsResponse
+	if err = json.Unmarshal(body, &sr); err != nil {
+		return nil, err
+	}
+	if sr.StatusCode != 0 {
+		return &sr.Data, nil
+	}
+
+	// nsq 1.x drops statsResponse for just stats
 	var s stats
-	if err = json.NewDecoder(resp.Body).Decode(&s); err != nil {
+	if err = json.Unmarshal(body, &s); err != nil {
 		return nil, err
 	}
 	return &s, nil
