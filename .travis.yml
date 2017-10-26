@@ -6,20 +6,19 @@ notifications:
 go:
   - 1.9.x
   - master
-before_script:
-  - cd /tmp
-  - curl -L https://s3.amazonaws.com/bitly-downloads/nsq/nsq-1.0.0-compat.linux-amd64.go1.8.tar.gz -o nsq-1.0.0-compat.linux-amd64.go1.8.tar.gz
-  - tar -zxvf nsq-1.0.0-compat.linux-amd64.go1.8.tar.gz
-  - sudo cp -R nsq-1.0.0-compat.linux-amd64.go1.8/bin/. /usr/local/bin
-  - nsqlookupd &
-  - nsqd -lookupd-tcp-address localhost:4160 &
-  - sleep 1
-  - echo 'test' | to_nsq -nsqd-tcp-address localhost:4150 -topic test -rate 2
-  - cd $HOME/gopath/src/github.com/adamweiner/nsqd-prometheus-exporter
 script:
+  # build nsqd-prometheus-exporter
   - make
+  # test with NSQ 0.3.8
+  - ./test/install_nsq_0.3.8.sh
   - ./nsqd-prometheus-exporter &
   - sleep 1
-  - curl -s localhost:30000/metrics > metrics.out
-  - cat metrics.out
-  - cat metrics.out | grep 'nsqd_depth{channel="",paused="false",topic="test",type="topic"} 1'
+  - ./test/test_depth_metric.sh
+  # clean up
+  - sudo killall -v nsqlookupd nsqd nsqd-prometheus-exporter
+  - sudo rm -rfv /usr/local/bin/*nsq* /tmp/*{nsq,diskqueue}*
+  # test with NSQ 1.0.0
+  - ./test/install_nsq_1.0.0.sh
+  - ./nsqd-prometheus-exporter &
+  - sleep 1
+  - ./test/test_depth_metric.sh
