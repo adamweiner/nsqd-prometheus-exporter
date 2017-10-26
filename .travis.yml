@@ -16,7 +16,7 @@ script:
   - ./test/test_depth_metric.sh
   # clean up
   - sudo killall -v nsqlookupd nsqd nsqd-prometheus-exporter
-  - sudo rm -fv /usr/local/bin/*nsq* /tmp/*{nsq,diskqueue}*
+  - sudo rm -rfv /usr/local/bin/*nsq* /tmp/*{nsq,diskqueue}*
   # test with NSQ 1.0.0
   - ./test/install_nsq_1.0.0.sh
   - ./nsqd-prometheus-exporter &
